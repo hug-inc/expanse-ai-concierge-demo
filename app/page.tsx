@@ -10,10 +10,10 @@ type Message = {
   link?: { label: string; href: string };
 };
 
-const topics = ["コースを相談したい", "店舗について", "料金・時間について", "予約について"];
+const topics = ["コース相談", "よくある質問", "ブログから探す", "店舗・予約"];
 
 const answers: Record<string, Omit<Message, "id" | "role">> = {
-  "コースを相談したい": {
+  "コース相談": {
     text: "もちろんです。今いちばん気になることを教えてください。",
     actions: ["肩・腰の疲れ", "眠り・頭の疲れ", "むくみ・冷え", "まずは全身ケア"],
   },
@@ -61,18 +61,80 @@ const answers: Record<string, Omit<Message, "id" | "role">> = {
     text: "公式予約ページから店舗・コース・日時を選択できます。空き状況や当日のご相談は、各店舗へ直接お問い合わせください。",
     link: { label: "公式予約ページを開く", href: "https://expanse.jp/reserve/" },
   },
+  "店舗・予約": {
+    text: "銀座・恵比寿・池袋の3店舗があります。全店、平日は11:00〜20:00、土日祝は10:00〜20:00で、最終受付は18:00と案内されています。店舗情報と予約、どちらをご覧になりますか？",
+    actions: ["店舗について", "予約について", "営業時間・電話番号"],
+  },
+  "よくある質問": {
+    text: "初めての方から多い質問をまとめました。知りたい項目を選んでください。",
+    actions: ["初めてでも大丈夫？", "施術時間とカウンセリング", "妊娠中・通院中の場合", "男性・ペア利用"],
+  },
+  "初めてでも大丈夫？": {
+    text: "はい。初回は身体の状態や体質についてカウンセリングを行い、内容を確認してから施術します。公式サイトでは初回来店時に15分ほどのカウンセリング時間を設けると案内されています。",
+    link: { label: "「初めての方へ」を見る", href: "https://expanse.jp/first02" },
+  },
+  "施術時間とカウンセリング": {
+    text: "メニューに記載された施術時間に、カウンセリング時間は含まれません。初回来店時は別途15分ほどのカウンセリング時間が案内されています。コースによってシャワーや着替えの時間も異なるため、余裕をもってご予定ください。",
+    link: { label: "メニューと注意事項を見る", href: "https://expanse.jp/menu02" },
+  },
+  "妊娠中・通院中の場合": {
+    text: "妊娠中・持病のある方・通院中の方は、医師の了承を得てから予約・来店するよう公式サイトで案内されています。妊婦向けのマタニティコースもありますが、体調を最優先に、事前に店舗へご相談ください。",
+    link: { label: "マタニティコースを確認する", href: "https://expanse.jp/menu02" },
+  },
+  "男性・ペア利用": {
+    text: "銀座SPAの予約ページには男性向けトリートメントと、2名で利用できるペア限定プランが掲載されています。店舗や日時により受付状況が異なるため、予約時にご確認ください。",
+    link: { label: "予約メニューを確認する", href: "https://expanse.jp/ginza/reserve.html" },
+  },
+  "営業時間・電話番号": {
+    text: "公式サイトの掲載情報です。\n\n恵比寿本店：03-3442-6656\n池袋本店：0800-800-1787\n銀座SPA：03-6263-9501\n\n平日 11:00〜20:00、土日祝 10:00〜20:00（最終受付18:00）です。",
+    link: { label: "公式の店舗情報を見る", href: "https://expanse.jp/first02#contact" },
+  },
+  "ブログから探す": {
+    text: "Expanse公式ブログの記事から、気になるテーマをご案内します。読みたいテーマを選んでください。",
+    actions: ["冷え・温活", "体質・ドーシャ", "食事・セルフケア", "美容・セルライト"],
+  },
+  "冷え・温活": {
+    text: "冷えのタイプを整理し、無理なく続けられる温活を紹介した記事があります。一時的に温めるだけでなく、熱を作れる身体を目指す考え方が解説されています。",
+    link: { label: "冷え性の温活記事を読む", href: "https://expanse.jp/blog/6070.html" },
+  },
+  "体質・ドーシャ": {
+    text: "アーユルヴェーダでは、ヴァータ・ピッタ・カパという3つのエネルギーから体質を捉えます。公式ブログでは、たとえばピッタの特徴や整え方を詳しく紹介しています。",
+    link: { label: "ピッタ体質の記事を読む", href: "https://expanse.jp/blog/5485.html" },
+  },
+  "食事・セルフケア": {
+    text: "公式ブログには、アーユルヴェーダの「6つの味」や、体質に合わせた食事の考え方など、日常に取り入れやすい記事があります。",
+    link: { label: "アーユルヴェーダの6つの味を読む", href: "https://expanse.jp/blog/649.html" },
+  },
+  "美容・セルライト": {
+    text: "太ももやおしりのセルライト、フェイシャルケアなど、美容に関する記事も掲載されています。記事一覧から最新情報を探せます。",
+    link: { label: "公式ブログ一覧を見る", href: "https://expanse.jp/blog" },
+  },
+  "アーユルヴェーダとは？": {
+    text: "アーユルヴェーダはインド・スリランカで生まれた伝統医学の一つで、身体と心のバランスを整え、健康を維持する考え方です。Expanseでは体質や当日の状態を確認し、ハーブオイルを使った施術を案内しています。",
+    link: { label: "公式の解説ページを見る", href: "https://expanse.jp/service" },
+  },
 };
 
 const initialMessage: Message = {
   id: 1,
   role: "bot",
-  text: "こんにちは。アーユルヴェーダサロン Expanse のご案内係です。コース選びや店舗について、どのようなことをお探しですか？",
+  text: "こんにちは。Expanseのサイト案内コンシェルジュです。コースや店舗のほか、よくある質問、ブログ、アーユルヴェーダの解説もご案内できます。",
   actions: topics,
 };
 
 function replyFor(input: string): Omit<Message, "id" | "role"> {
   if (answers[input]) return answers[input];
   const text = input.trim();
+  if (/アーユルヴェーダとは|アーユルベーダとは|どんなもの/.test(text)) return answers["アーユルヴェーダとは？"];
+  if (/初めて|初回|カウンセリング/.test(text)) return answers["初めてでも大丈夫？"];
+  if (/妊娠|妊婦|持病|通院|医師/.test(text)) return answers["妊娠中・通院中の場合"];
+  if (/男性|ペア|二人|カップル/.test(text)) return answers["男性・ペア利用"];
+  if (/営業時間|電話|連絡先/.test(text)) return answers["営業時間・電話番号"];
+  if (/ブログ|記事|読み物/.test(text)) return answers["ブログから探す"];
+  if (/ドーシャ|ヴァータ|ピッタ|カパ|体質/.test(text)) return answers["体質・ドーシャ"];
+  if (/食事|セルフケア|味/.test(text)) return answers["食事・セルフケア"];
+  if (/冷え|温活/.test(text)) return answers["冷え・温活"];
+  if (/セルライト|美容|フェイシャル/.test(text)) return answers["美容・セルライト"];
   if (/予約|空き/.test(text)) return answers["予約について"];
   if (/料金|値段|時間|何分/.test(text)) return answers["料金・時間について"];
   if (/銀座/.test(text)) return answers["銀座SPA"];
@@ -80,9 +142,9 @@ function replyFor(input: string): Omit<Message, "id" | "role"> {
   if (/池袋/.test(text)) return answers["池袋本店"];
   if (/眠|頭|眼精|ストレス/.test(text)) return answers["眠り・頭の疲れ"];
   if (/肩|腰|こり|疲れ/.test(text)) return answers["肩・腰の疲れ"];
-  if (/冷え|むくみ/.test(text)) return answers["むくみ・冷え"];
+  if (/むくみ/.test(text)) return answers["むくみ・冷え"];
   return {
-    text: "ありがとうございます。このデモではコース・店舗・料金・予約についてご案内できます。下の項目から選ぶか、もう少し短い言葉でお聞かせください。",
+    text: "ありがとうございます。サイトに掲載されたコース・店舗・予約・FAQ・ブログ・アーユルヴェーダ情報をご案内できます。下の項目から選ぶか、知りたいことを短い言葉でお聞かせください。",
     actions: topics,
   };
 }
@@ -143,7 +205,7 @@ export default function Home() {
           <h1>深く休み、<br />本来のわたしへ。</h1>
           <p>温かなハーブオイルと確かな手技で、<br className="desktop" />心と身体をゆっくり解きほぐす時間を。</p>
           <button className="hero-cta" onClick={() => setOpen(true)}>
-            AIコンシェルジュに相談
+            サイト案内AIに質問する
             <span>→</span>
           </button>
         </div>
@@ -155,7 +217,7 @@ export default function Home() {
       <section className="intro" id="about">
         <p className="section-kicker">WELCOME TO EXPANSE</p>
         <h2>あなたの今に寄り添う、<br />アーユルヴェーダ体験</h2>
-        <p className="intro-body">初めての方にも安心してお過ごしいただけるよう、丁寧なカウンセリングから始めます。今日のお悩みや理想の過ごし方を、AIコンシェルジュにもお気軽にご相談ください。</p>
+        <p className="intro-body">初めての方にも安心してお過ごしいただけるよう、丁寧なカウンセリングから始めます。コース選びだけでなく、よくある質問や公式ブログの記事もAIコンシェルジュにお気軽にお尋ねください。</p>
       </section>
 
       <section className="courses" id="courses">
@@ -207,7 +269,7 @@ export default function Home() {
           </div>
           <button onClick={() => setOpen(false)} aria-label="チャットを閉じる">×</button>
         </div>
-        <div className="chat-demo-notice">デモ版・AI API未接続</div>
+        <div className="chat-demo-notice">デモ版・公式サイト掲載情報をもとにご案内</div>
         <div className="chat-messages" aria-live="polite">
           {messages.map((message) => (
             <div className={`message-row ${message.role}`} key={message.id}>
@@ -246,7 +308,7 @@ export default function Home() {
           />
           <button type="submit" disabled={!input.trim() || typing} aria-label="送信">→</button>
         </form>
-        <p className="chat-footnote">医療的な診断は行いません。情報はデモ用です。</p>
+        <p className="chat-footnote">医療的な診断は行いません。最新情報はリンク先の公式ページをご確認ください。</p>
       </section>
     </main>
   );
