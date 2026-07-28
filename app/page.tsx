@@ -329,9 +329,6 @@ export default function Home() {
           </div>
           <button onClick={() => setOpen(false)} aria-label="チャットを閉じる">×</button>
         </div>
-        <div className="chat-demo-notice">
-          {knowledge.length > 0 ? `公式サイト内 ${knowledge.length}件を検索できます` : "公式サイトの情報を読み込み中…"}
-        </div>
         <div className="chat-messages" aria-live="polite">
           {messages.map((message) => (
             <div className={`message-row ${message.role}`} key={message.id}>
