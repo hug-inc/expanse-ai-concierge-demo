@@ -1,98 +1,55 @@
-# vinext-starter
+# Expanse AIコンシェルジュ
 
-A clean full-stack starter running on
-[vinext](https://github.com/cloudflare/vinext), with optional Cloudflare D1 and
-Drizzle support.
+アーユルヴェーダサロン「Expanse」の公式サイト情報をもとに、メニュー、料金、店舗、採用、ブログ、よくある質問などへ回答するAIチャットボットのデモです。
 
-## Prerequisites
+[![Expanse AIコンシェルジュのプレビュー](https://raw.githubusercontent.com/hug-inc/expanse-ai-concierge-demo/main/public/og.png)](https://expanse-ai-concierge-demo.ebisawa818511.chatgpt.site/)
+
+## [公開デモを見る](https://expanse-ai-concierge-demo.ebisawa818511.chatgpt.site/)
+
+ブラウザでチャットを開き、たとえば次のように質問できます。
+
+- メニューを教えて
+- アヴィヤンガの料金は？
+- カパについて詳しく教えて
+- 採用している職種と条件は？
+- それの120分はいくら？
+
+## 主な機能
+
+- Expanse公式サイトのページ・ブログを検索
+- OpenAI APIによる質問意図と会話履歴の理解
+- メニューや料金などの情報を整理して回答
+- 回答の参考にした公式ページへのリンク表示
+- API障害時の固定回答フォールバック
+
+## ローカル起動
+
+必要なもの：
 
 - Node.js `>=22.13.0`
-
-## Quick Start
+- OpenAI APIキー
 
 ```bash
-npm install
-npm run dev
-npm run build
+pnpm install
+OPENAI_API_KEY=your_api_key pnpm run dev
 ```
 
-This starter does not use `wrangler.jsonc`.
+APIキーをソースコードやGitHubへコミットしないでください。
 
-## Included Shape
+## ビルド
 
-- edit site code under `app/`
-- `.openai/hosting.json` declares optional Sites D1 and R2 bindings
-- `vite.config.ts` simulates declared bindings for local development
-- `db/schema.ts` starts intentionally empty
-- `examples/d1/` contains an optional D1 example surface
-- `drizzle.config.ts` supports local migration generation when needed
-
-## Workspace Auth Headers
-
-OpenAI workspace sites can read the current user's email from
-`oai-authenticated-user-email`.
-
-SIWC-authenticated workspace sites may also receive
-`oai-authenticated-user-full-name` when the user's SIWC profile has a non-empty
-`name` claim. The full-name value is percent-encoded UTF-8 and is accompanied by
-`oai-authenticated-user-full-name-encoding: percent-encoded-utf-8`.
-
-Treat the full name as optional and fall back to email when it is absent:
-
-```tsx
-import { headers } from "next/headers";
-
-export default async function Home() {
-  const requestHeaders = await headers();
-  const email = requestHeaders.get("oai-authenticated-user-email");
-  const encodedFullName = requestHeaders.get("oai-authenticated-user-full-name");
-  const fullName =
-    encodedFullName &&
-    requestHeaders.get("oai-authenticated-user-full-name-encoding") ===
-      "percent-encoded-utf-8"
-      ? decodeURIComponent(encodedFullName)
-      : null;
-
-  const displayName = fullName ?? email;
-  // ...
-}
+```bash
+pnpm run build
 ```
 
-## Optional Dispatch-Owned ChatGPT Sign-In
+## 主な構成
 
-Import the ready-to-use helpers from `app/chatgpt-auth.ts` when the site needs
-optional or required ChatGPT sign-in:
+- `app/page.tsx`：チャット画面とクライアント処理
+- `app/api/chat/route.ts`：OpenAI APIを呼び出すサーバー処理
+- `app/site-search.ts`：公式サイト情報の検索
+- `public/knowledge.json`：公式サイトから生成した検索用データ
+- `scripts/build-knowledge.mjs`：検索用データの更新
 
-- Use `getChatGPTUser()` for optional signed-in UI.
-- Use `requireChatGPTUser(returnTo)` for server-rendered pages that should send
-  anonymous visitors through Sign in with ChatGPT.
-- Use `chatGPTSignInPath(returnTo)` and `chatGPTSignOutPath(returnTo)` for
-  browser links or actions.
-- Pass a same-origin relative `returnTo` path for the destination after sign-in
-  or sign-out. The helper validates and safely encodes it.
-- Mark protected pages with `export const dynamic = "force-dynamic"` because
-  they depend on per-request identity headers.
+## 公開環境
 
-Dispatch owns `/signin-with-chatgpt`, `/signout-with-chatgpt`, `/callback`, the
-OAuth cookies, and identity header injection. Do not implement app routes for
-those reserved paths. Routes that do not import and call the helper remain
-anonymous-compatible.
-
-SIWC establishes identity only; it does not prove workspace membership. Use the
-Sites hosting platform's access policy controls for workspace-wide restrictions,
-or enforce explicit server-side membership or allowlist checks.
-
-Use SIWC for account pages, user-specific dashboards, saved records, and write
-actions tied to the current ChatGPT user. Leave public content anonymous.
-
-## Useful Commands
-
-- `npm run dev`: start local development
-- `npm run build`: verify the vinext build output
-- `npm test`: build the starter and verify its rendered loading skeleton
-- `npm run db:generate`: generate Drizzle migrations after schema changes
-
-## Learn More
-
-- [vinext Documentation](https://github.com/cloudflare/vinext)
-- [Drizzle D1 Guide](https://orm.drizzle.team/docs/get-started/d1-new)
+公開サイトのAPIキーは、ホスティング環境の秘密変数 `OPENAI_API_KEY` として設定します。APIキーはこのリポジトリには含まれていません。
