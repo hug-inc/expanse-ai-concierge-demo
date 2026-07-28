@@ -1,7 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { KnowledgeDocument, siteAnswer } from "./site-search";
+import { KnowledgeDocument, searchSite, siteAnswer } from "./site-search";
 
 type Message = {
   id: number;
@@ -299,20 +299,53 @@ export default function Home() {
       .catch(() => setKnowledge([]));
   }, []);
 
-  function send(text: string) {
+  async function send(text: string) {
     const clean = text.trim();
     if (!clean || typing) return;
-    setMessages((current) => [...current, { id: Date.now(), role: "user", text: clean }]);
+    const userMessage: Message = { id: Date.now(), role: "user", text: clean };
+    const conversation = [...messages, userMessage];
+    setMessages(conversation);
     setInput("");
     setTyping(true);
-    window.setTimeout(() => {
-      const reply = replyFor(clean, knowledge);
+
+    try {
+      const retrievalQuery = conversation
+        .filter((message) => message.role === "user")
+        .slice(-3)
+        .map((message) => message.text)
+        .join(" ");
+      const sources = searchSite(retrievalQuery, knowledge, 6).map((result) => ({
+        title: result.document.title,
+        url: result.document.url,
+        passage: result.passage || result.document.summary,
+      }));
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          message: clean,
+          history: messages.slice(-10).map((message) => ({
+            role: message.role === "bot" ? "assistant" : "user",
+            content: message.text,
+          })),
+          sources,
+        }),
+      });
+      if (!response.ok) throw new Error("AI response failed");
+      const reply = await response.json() as Omit<Message, "id" | "role">;
       setMessages((current) => [
         ...current,
         { id: Date.now() + 1, role: "bot", ...reply },
       ]);
+    } catch {
+      const fallback = replyFor(clean, knowledge);
+      setMessages((current) => [
+        ...current,
+        { id: Date.now() + 1, role: "bot", ...fallback },
+      ]);
+    } finally {
       setTyping(false);
-    }, 520);
+    }
   }
 
   function submit(event: FormEvent) {

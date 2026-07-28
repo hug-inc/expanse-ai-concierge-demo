@@ -8,7 +8,7 @@ export type KnowledgeDocument = {
   date: string;
 };
 
-type SearchResult = {
+export type SearchResult = {
   document: KnowledgeDocument;
   score: number;
   passage: string;
