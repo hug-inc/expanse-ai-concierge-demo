@@ -79,25 +79,59 @@ function relevantPassage(document: KnowledgeDocument, terms: string[]) {
     .filter((sentence) => sentence.length >= 25 && sentence.length <= 260);
 
   const ranked = sentences
-    .map((sentence) => {
+    .map((sentence, index) => {
       const normalized = normalize(sentence);
       const score = terms.reduce(
         (total, term) => total + occurrences(normalized, term) * (term.length + 2),
         0,
       );
-      return { sentence, score };
+      return { sentence, score, index };
     })
     .filter((item) => item.score > 0)
     .sort((a, b) => b.score - a.score);
 
-  const selected: string[] = [];
-  for (const item of ranked) {
-    if (selected.some((sentence) => sentence.includes(item.sentence) || item.sentence.includes(sentence))) continue;
-    selected.push(item.sentence);
-    if (selected.join("").length >= 360 || selected.length === 2) break;
+  const selectedIndexes = new Set<number>();
+  for (const item of ranked.slice(0, 3)) {
+    for (let offset = -1; offset <= 2; offset += 1) {
+      const index = item.index + offset;
+      if (index >= 0 && index < sentences.length) selectedIndexes.add(index);
+    }
+    const currentLength = [...selectedIndexes]
+      .sort((a, b) => a - b)
+      .map((index) => sentences[index])
+      .join("").length;
+    if (currentLength >= 700) break;
   }
 
-  return selected.join("");
+  return [...selectedIndexes]
+    .sort((a, b) => a - b)
+    .map((index) => sentences[index])
+    .join("")
+    .slice(0, 900);
+}
+
+function doshaOverview(query: string) {
+  const normalized = normalize(query);
+
+  if (normalized.includes("カパ")) {
+    return `カパは、アーユルヴェーダにおける3つの生命エネルギー（ドーシャ）のひとつで、「水」と「地」の性質を持つと考えられています。安定・結合・潤いを支える、どっしりと落ち着いたエネルギーです。
+
+【バランスが整っているとき】
+穏やかで包容力があり、忍耐強く、物事を継続する力があります。体力や持久力が比較的安定し、肌や髪に潤いが出やすいのもカパの特徴です。
+
+【カパが増えすぎたときの傾向】
+身体の重だるさ、眠気、むくみ、動き出しにくさ、体重が増えやすい、消化がゆっくりになるといった傾向が現れやすいとされます。心の面では、変化を避けたくなったり、やる気が出にくくなったりすることがあります。
+
+【整えるための過ごし方】
+カパの「重い・冷たい・ゆっくり」という性質と反対の、軽さ・温かさ・刺激を意識します。朝寝坊や昼寝を控え、散歩や軽い運動で身体を動かすこと、生活に新しい刺激を取り入れることが向いています。
+
+【食事のポイント】
+温かく、軽く、できたての食事を中心にし、辛味・苦味・渋味を適度に取り入れる考え方があります。反対に、甘いもの、油分の多いもの、冷たいもの、食べ過ぎはカパを増やしやすいとされるため、重だるさがある時は控えめにします。
+
+なお、実際の体質はカパだけで決まるとは限らず、ヴァータやピッタとの複合型、季節や現在の体調による一時的な乱れもあります。簡易診断は目安として、今の心身の状態も合わせて見ることが大切です。`;
+  }
+
+  return null;
 }
 
 export function searchSite(query: string, documents: KnowledgeDocument[], limit = 3): SearchResult[] {
@@ -128,9 +162,10 @@ export function siteAnswer(query: string, documents: KnowledgeDocument[]) {
   const results = searchSite(query, documents);
   if (results.length === 0) return null;
 
+  const overview = doshaOverview(query);
   const passages = results
-    .slice(0, 2)
-    .map((result) => `・${result.passage}`)
+    .slice(0, overview ? 1 : 3)
+    .map((result) => `【${result.document.title.replace(/\s*\|\s*アーユルヴェーダExpanse[\s\S]*$/, "")}】\n${result.passage}`)
     .join("\n\n");
 
   const healthQuestion =
@@ -140,7 +175,9 @@ export function siteAnswer(query: string, documents: KnowledgeDocument[]) {
     : "掲載内容や条件は変更される場合があります。最終確認はリンク先の公式ページをご覧ください。";
 
   return {
-    text: `${passages}\n\n${note}`,
+    text: overview
+      ? `${overview}\n\n${note}`
+      : `${passages}\n\n${note}`,
     links: results.map((result) => ({
       label: result.document.title.replace(/\s*\|\s*アーユルヴェーダExpanse[\s\S]*$/, "").slice(0, 42),
       href: result.document.url,
