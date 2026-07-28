@@ -140,7 +140,7 @@ export function siteAnswer(query: string, documents: KnowledgeDocument[]) {
     : "掲載内容や条件は変更される場合があります。最終確認はリンク先の公式ページをご覧ください。";
 
   return {
-    text: `Expanse公式サイト内の${documents.length}件のページ・記事から、質問に近い内容を確認しました。\n\n${passages}\n\n${note}`,
+    text: `${passages}\n\n${note}`,
     links: results.map((result) => ({
       label: result.document.title.replace(/\s*\|\s*アーユルヴェーダExpanse[\s\S]*$/, "").slice(0, 42),
       href: result.document.url,
