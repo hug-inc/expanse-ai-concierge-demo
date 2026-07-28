@@ -1,6 +1,7 @@
 "use client";
 
 import { FormEvent, useEffect, useRef, useState } from "react";
+import { KnowledgeDocument, siteAnswer } from "./site-search";
 
 type Message = {
   id: number;
@@ -8,6 +9,7 @@ type Message = {
   text: string;
   actions?: string[];
   link?: { label: string; href: string };
+  links?: { label: string; href: string }[];
 };
 
 const topics = ["コース相談", "よくある質問", "ブログから探す", "店舗・予約"];
@@ -139,7 +141,7 @@ const initialMessage: Message = {
   actions: topics,
 };
 
-function replyFor(input: string): Omit<Message, "id" | "role"> {
+function replyFor(input: string, knowledge: KnowledgeDocument[]): Omit<Message, "id" | "role"> {
   if (answers[input]) return answers[input];
   const text = input.trim();
   if (/アーユルヴェーダとは|アーユルベーダとは|どんなもの/.test(text)) return answers["アーユルヴェーダとは？"];
@@ -148,24 +150,23 @@ function replyFor(input: string): Omit<Message, "id" | "role"> {
   if (/男性|ペア|二人|カップル/.test(text)) return answers["男性・ペア利用"];
   if (/営業時間|電話|連絡先/.test(text)) return answers["営業時間・電話番号"];
   if (/ブログ|記事|読み物/.test(text)) return answers["ブログから探す"];
-  if (/ドーシャ|ヴァータ|ピッタ|カパ|体質/.test(text)) return answers["体質・ドーシャ"];
-  if (/食事|セルフケア|味/.test(text)) return answers["食事・セルフケア"];
-  if (/冷え|温活/.test(text)) return answers["冷え・温活"];
   if (/触る.*痛|押す.*痛|セルライト.*痛/.test(text)) return answers["触ると痛い場合"];
   if (/セルライト.*原因|なぜ.*セルライト/.test(text)) return answers["セルライトの原因"];
   if (/痩せ.*セルライト|セルライト.*痩せ|ダイエット.*セルライト/.test(text)) return answers["痩せたら消える？"];
   if (/セルライト.*ケア|セルライト.*改善|セルライト.*なく|セルライト.*消/.test(text)) return answers["セルライトのセルフケア"];
-  if (/セルライト|美容|フェイシャル/.test(text)) return answers["美容・セルライト"];
+  if (/セルライト/.test(text)) return answers["美容・セルライト"];
   if (/予約|空き/.test(text)) return answers["予約について"];
   if (/料金|値段|時間|何分/.test(text)) return answers["料金・時間について"];
   if (/銀座/.test(text)) return answers["銀座SPA"];
   if (/恵比寿/.test(text)) return answers["恵比寿本店"];
   if (/池袋/.test(text)) return answers["池袋本店"];
-  if (/眠|頭|眼精|ストレス/.test(text)) return answers["眠り・頭の疲れ"];
-  if (/肩|腰|こり|疲れ/.test(text)) return answers["肩・腰の疲れ"];
-  if (/むくみ/.test(text)) return answers["むくみ・冷え"];
+  if (/コース|施術|メニュー|おすすめ/.test(text) && /眠|頭|眼精|ストレス/.test(text)) return answers["眠り・頭の疲れ"];
+  if (/コース|施術|メニュー|おすすめ/.test(text) && /肩|腰|こり|疲れ/.test(text)) return answers["肩・腰の疲れ"];
+  if (/コース|施術|メニュー|おすすめ/.test(text) && /むくみ|冷え/.test(text)) return answers["むくみ・冷え"];
+  const searched = siteAnswer(text, knowledge);
+  if (searched) return searched;
   return {
-    text: "ありがとうございます。サイトに掲載されたコース・店舗・予約・FAQ・ブログ・アーユルヴェーダ情報をご案内できます。下の項目から選ぶか、知りたいことを短い言葉でお聞かせください。",
+    text: "サイト内を検索しましたが、質問に合う記載を十分に特定できませんでした。言葉を少し変えるか、「症状・施術名・店舗名・記事のテーマ」のように具体的に入力してください。スタッフへの確認が必要な内容は、店舗へお問い合わせください。",
     actions: topics,
   };
 }
@@ -175,11 +176,19 @@ export default function Home() {
   const [messages, setMessages] = useState<Message[]>([initialMessage]);
   const [input, setInput] = useState("");
   const [typing, setTyping] = useState(false);
+  const [knowledge, setKnowledge] = useState<KnowledgeDocument[]>([]);
   const endRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (open) endRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, typing, open]);
+
+  useEffect(() => {
+    fetch("/knowledge.json")
+      .then((response) => response.json())
+      .then((data) => setKnowledge(data.documents ?? []))
+      .catch(() => setKnowledge([]));
+  }, []);
 
   function send(text: string) {
     const clean = text.trim();
@@ -188,7 +197,7 @@ export default function Home() {
     setInput("");
     setTyping(true);
     window.setTimeout(() => {
-      const reply = replyFor(clean);
+      const reply = replyFor(clean, knowledge);
       setMessages((current) => [
         ...current,
         { id: Date.now() + 1, role: "bot", ...reply },
@@ -290,7 +299,9 @@ export default function Home() {
           </div>
           <button onClick={() => setOpen(false)} aria-label="チャットを閉じる">×</button>
         </div>
-        <div className="chat-demo-notice">デモ版・公式サイト掲載情報をもとにご案内</div>
+        <div className="chat-demo-notice">
+          {knowledge.length > 0 ? `公式サイト内 ${knowledge.length}件を検索できます` : "公式サイトの情報を読み込み中…"}
+        </div>
         <div className="chat-messages" aria-live="polite">
           {messages.map((message) => (
             <div className={`message-row ${message.role}`} key={message.id}>
@@ -309,6 +320,11 @@ export default function Home() {
                     {message.link.label} <span>↗</span>
                   </a>
                 )}
+                {message.links?.map((item) => (
+                  <a className="chat-link" href={item.href} target="_blank" rel="noreferrer" key={item.href}>
+                    {item.label} <span>↗</span>
+                  </a>
+                ))}
               </div>
             </div>
           ))}
