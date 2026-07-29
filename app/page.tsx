@@ -14,6 +14,13 @@ type Message = {
 
 const topics = ["コース相談", "よくある質問", "ブログから探す", "店舗・予約"];
 
+const storeAccessSource = {
+  title: "Expanse 店舗一覧・アクセス",
+  url: "https://expanse.jp/#shoplist",
+  passage:
+    "恵比寿本店：東京都渋谷区恵比寿4-3-1 クイズ恵比寿3F-O。池袋本店：東京都豊島区南池袋1-17-2 南池袋I-Nビル8F。銀座SPA：東京都中央区銀座7-9-11 モンブラン銀座ビル8階。渋谷からは、隣接エリアでJRでも隣駅の恵比寿本店が通常もっとも近く、行きやすい候補。旧渋谷店は閉店している。",
+};
+
 const answers: Record<string, Omit<Message, "id" | "role">> = {
   "コース相談": {
     text: "もちろんです。今いちばん気になることを教えてください。",
@@ -36,7 +43,7 @@ const answers: Record<string, Omit<Message, "id" | "role">> = {
     actions: ["店舗を選ぶ", "予約について"],
   },
   "店舗について": {
-    text: "エクスパンスは銀座・恵比寿・池袋に店舗があります。ご希望の店舗を選んでください。",
+    text: "エクスパンスは恵比寿・池袋・銀座に店舗があります。\n\n・恵比寿本店：東京都渋谷区恵比寿4-3-1 クイズ恵比寿3F-O\n・池袋本店：東京都豊島区南池袋1-17-2 南池袋I-Nビル8F\n・銀座SPA：東京都中央区銀座7-9-11 モンブラン銀座ビル8階\n\n出発する駅やエリアを教えていただければ、位置関係から行きやすい店舗をご案内します。",
     actions: ["銀座SPA", "恵比寿本店", "池袋本店"],
   },
   "店舗を選ぶ": {
@@ -262,6 +269,13 @@ function replyFor(input: string, knowledge: KnowledgeDocument[]): Omit<Message, 
   if (/セルライト.*ケア|セルライト.*改善|セルライト.*なく|セルライト.*消/.test(text)) return answers["セルライトのセルフケア"];
   if (/セルライト/.test(text)) return answers["美容・セルライト"];
   if (/予約|空き/.test(text)) return answers["予約について"];
+  if (/渋谷/.test(text) && /(近|最寄り|行きやす|アクセス|店舗|どこ)/.test(text)) {
+    return {
+      text: "渋谷からなら、3店舗の中では恵比寿本店がもっとも近く、通常いちばん行きやすい候補です。渋谷駅から恵比寿駅はJRで隣駅です。\n\n恵比寿本店の住所は「東京都渋谷区恵比寿4-3-1 クイズ恵比寿3F-O」です。なお、以前の渋谷店は閉店しているため、現在ご案内できる最寄り候補は恵比寿本店になります。",
+      actions: ["恵比寿本店", "予約について", "営業時間・電話番号"],
+      link: { label: "公式の店舗情報を見る", href: "https://expanse.jp/#shoplist" },
+    };
+  }
   const priceAnswer = coursePriceAnswer(text);
   if (priceAnswer) return priceAnswer;
   if (/時間|何分/.test(text)) return answers["料金・時間について"];
@@ -319,6 +333,9 @@ export default function Home() {
         url: result.document.url,
         passage: result.passage || result.document.summary,
       }));
+      if (/(近|最寄り|行きやす|アクセス|住所|所在地|店舗|どこ)/.test(retrievalQuery)) {
+        sources.unshift(storeAccessSource);
+      }
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
