@@ -11,6 +11,13 @@ const stores: StructuredSource = {
     "現在の店舗は恵比寿本店・池袋本店・銀座SPAの3店舗。恵比寿本店は東京都渋谷区恵比寿4-3-1 クイズ恵比寿3F-O、電話03-3442-6656、店舗ページhttps://expanse.jp/ebisu02。池袋本店は東京都豊島区南池袋1-17-2 南池袋I-Nビル8F、電話0800-800-1787、店舗ページhttps://expanse.jp/ikebukuro02。銀座SPAは東京都中央区銀座7-9-11 モンブラン銀座ビル8階、電話03-6263-9501、店舗ページhttps://expanse.jp/ginza02。全店、平日11:00〜20:00、土日祝10:00〜20:00、最終受付18:00。旧渋谷店は閉店済み。渋谷からはJRで隣駅かつ隣接エリアの恵比寿本店が通常もっとも近く行きやすい。",
 };
 
+const recruitment: StructuredSource = {
+  title: "Expanse 採用情報・募集職種",
+  url: "https://expanse.jp/recruit_02",
+  passage:
+    "Expanseでは、セラピスト、レセプション・カウンセラー、WEBデザイナー、グラフィックデザイナー、WEBマーケター、動画クリエイター、EC shop運営担当、EC Shop運営責任者を募集。店舗職の希望勤務地は銀座中央通り店・池袋本店・恵比寿本店。未経験から応募できるセラピスト募集もある。職種ごとに仕事内容・条件・給与・休日が異なるため、希望職種を確認して詳しい条件を案内する。応募フォームはhttps://expanse.jp/recruit_02#entry、採用担当は03-6263-9501（10:00〜17:00）。",
+};
+
 const ayurhand: StructuredSource = {
   title: "アユルハンド（痩身）コース",
   url: "https://expanse.jp/menu02",
@@ -68,6 +75,11 @@ export function structuredSourcesFor(query: string): StructuredSource[] {
   const text = query.normalize("NFKC").toLowerCase();
   const results: StructuredSource[] = [];
 
+  if (/(働|仕事|就職|転職|採用|求人|募集|応募|エントリー|職種|給料|給与|セラピストにな|スタッフにな)/.test(text)) {
+    addUnique(results, recruitment);
+    return results;
+  }
+
   if (/(店舗|お店|住所|所在地|アクセス|最寄り|近い|行きやすい|営業時間|電話|渋谷|恵比寿|池袋|銀座)/.test(text)) {
     addUnique(results, stores);
   }
@@ -94,4 +106,13 @@ export function structuredSourcesFor(query: string): StructuredSource[] {
   }
 
   return results.slice(0, 4);
+}
+
+export function retrievalQueryFor(currentMessage: string, previousUserMessages: string[]) {
+  const current = currentMessage.trim();
+  const needsContext =
+    /^(それ|その|これ|この|あれ|前の|さっき|同じ)|それの|そのコース|その店舗|どっち|比較して|詳しく|料金は|値段は|予約は/.test(current);
+
+  if (!needsContext) return current;
+  return [...previousUserMessages.slice(-2), current].join(" ");
 }

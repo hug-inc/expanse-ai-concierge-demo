@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { structuredSourcesFor } from "../app/structured-knowledge.ts";
+import { retrievalQueryFor, structuredSourcesFor } from "../app/structured-knowledge.ts";
 
 test("太もも痩せではアユルハンドと料金表を優先する", () => {
   const sources = structuredSourcesFor("太もも痩せしたい。どのコースがいいですか？");
@@ -29,4 +29,28 @@ test("妊娠中の相談ではマタニティと注意事項を返す", () => {
   const sources = structuredSourcesFor("妊娠中でも受けられますか？");
   const maternity = sources.find((source) => source.title === "マタニティコース");
   assert.match(maternity?.passage ?? "", /医師の了承/);
+});
+
+test("働きたい質問では採用情報だけを返す", () => {
+  const sources = structuredSourcesFor("Expanseで働いてみたい");
+  assert.deepEqual(sources.map((source) => source.title), ["Expanse 採用情報・募集職種"]);
+  assert.equal(sources[0]?.url, "https://expanse.jp/recruit_02");
+});
+
+test("新しい話題には過去のコース質問を混ぜない", () => {
+  const query = retrievalQueryFor("働いてみたい", [
+    "太もも痩せにはどのコース？",
+    "シローダーラーの料金は？",
+  ]);
+  assert.equal(query, "働いてみたい");
+  assert.deepEqual(
+    structuredSourcesFor(query).map((source) => source.title),
+    ["Expanse 採用情報・募集職種"],
+  );
+});
+
+test("それの料金では直前の話題を検索に引き継ぐ", () => {
+  const query = retrievalQueryFor("それの料金は？", ["アヴィヤンガについて教えて"]);
+  assert.match(query, /アヴィヤンガ/);
+  assert.ok(structuredSourcesFor(query).some((source) => source.title === "アヴィヤンガ全身コース"));
 });

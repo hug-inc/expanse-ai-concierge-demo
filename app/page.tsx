@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { KnowledgeDocument, searchSite, siteAnswer } from "./site-search";
-import { structuredSourcesFor } from "./structured-knowledge";
+import { retrievalQueryFor, structuredSourcesFor } from "./structured-knowledge";
 
 type Message = {
   id: number;
@@ -324,11 +324,12 @@ export default function Home() {
     setTyping(true);
 
     try {
-      const retrievalQuery = conversation
-        .filter((message) => message.role === "user")
-        .slice(-3)
-        .map((message) => message.text)
-        .join(" ");
+      const retrievalQuery = retrievalQueryFor(
+        clean,
+        messages
+          .filter((message) => message.role === "user")
+          .map((message) => message.text),
+      );
       const structuredSources = structuredSourcesFor(retrievalQuery);
       const searchedSources = searchSite(retrievalQuery, knowledge, 6).map((result) => ({
         title: result.document.title,

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { structuredSourcesFor } from "../../structured-knowledge";
+import { retrievalQueryFor, structuredSourcesFor } from "../../structured-knowledge";
 
 type ChatMessage = {
   role: "user" | "assistant";
@@ -48,13 +48,19 @@ export async function POST(request: NextRequest) {
       role: item.role,
       content: item.content.slice(0, 1800),
     }));
-  const conversationQuery = [...history.map((item) => item.content), message]
-    .slice(-4)
-    .join(" ");
-  const structuredSources = structuredSourcesFor(conversationQuery);
+  const retrievalQuery = retrievalQueryFor(
+    message,
+    history.filter((item) => item.role === "user").map((item) => item.content),
+  );
+  const structuredSources = structuredSourcesFor(retrievalQuery);
+  const recruitmentIntent =
+    /(働|仕事|就職|転職|採用|求人|募集|応募|エントリー|職種|給料|給与|セラピストにな|スタッフにな)/.test(message);
+  const submittedSources = recruitmentIntent
+    ? (body.sources ?? []).filter((source) => /採用|求人|募集|recruit/i.test(`${source.title} ${source.url}`))
+    : (body.sources ?? []);
   const sources = [
     ...structuredSources,
-    ...(body.sources ?? []),
+    ...submittedSources,
   ]
     .filter((source, index, items) =>
       items.findIndex((item) => item.title === source.title && item.url === source.url) === index,
@@ -94,6 +100,7 @@ export async function POST(request: NextRequest) {
 - 質問に合う公式の店舗ページ・コースページが資料に含まれる場合は、そのリンクを必ず回答に付ける。
 - 回答は原則「結論・おすすめ→理由→内容→時間・料金→対応店舗→公式リンク」の順に組み立てる。該当しない項目は省略してよい。
 - 構造化されたコース・店舗資料を、一般ブログ記事より優先する。
+- 働きたい、求人、採用、応募などの質問では採用情報だけを使い、施術コースやメニューのリンクを付けない。まず募集職種を示し、希望職種を確認する。
 - 「それ」「そのコース」などは会話履歴から対象を特定する。
 - 情報が足りない場合だけ、必要な確認を1つ尋ねる。推測で事実を作らない。
 - 「サイト内を検索しました」など内部処理の説明はしない。
