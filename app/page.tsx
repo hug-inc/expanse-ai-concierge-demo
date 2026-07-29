@@ -2,6 +2,7 @@
 
 import { FormEvent, useEffect, useRef, useState } from "react";
 import { KnowledgeDocument, searchSite, siteAnswer } from "./site-search";
+import { structuredSourcesFor } from "./structured-knowledge";
 
 type Message = {
   id: number;
@@ -13,20 +14,6 @@ type Message = {
 };
 
 const topics = ["コース相談", "よくある質問", "ブログから探す", "店舗・予約"];
-
-const storeAccessSource = {
-  title: "恵比寿本店 店舗情報・アクセス",
-  url: "https://expanse.jp/ebisu02",
-  passage:
-    "恵比寿本店：東京都渋谷区恵比寿4-3-1 クイズ恵比寿3F-O。池袋本店：東京都豊島区南池袋1-17-2 南池袋I-Nビル8F。銀座SPA：東京都中央区銀座7-9-11 モンブラン銀座ビル8階。渋谷からは、隣接エリアでJRでも隣駅の恵比寿本店が通常もっとも近く、行きやすい候補。旧渋谷店は閉店している。",
-};
-
-const slimmingCourseSource = {
-  title: "恵比寿・池袋の痩身メニュー「アユルハンド」",
-  url: "https://expanse.jp/menu02",
-  passage:
-    "太もも・お尻・下半身の引き締めやセルライト、むくみ、ボディラインが気になる場合は、Expanse独自の痩身技術「アユルハンド」が第一候補。オールハンドの強圧テクニックで全身を揉みこみ、水分や老廃物の排出、むくみ、代謝促進、セルライトケア、ボディラインを整えることを目的とする。恵比寿本店・池袋本店のアユルハンド全身は90分が通常26,400円／初回20,900円、120分が通常30,800円／初回24,200円。",
-};
 
 const answers: Record<string, Omit<Message, "id" | "role">> = {
   "コース相談": {
@@ -342,17 +329,13 @@ export default function Home() {
         .slice(-3)
         .map((message) => message.text)
         .join(" ");
-      const sources = searchSite(retrievalQuery, knowledge, 6).map((result) => ({
+      const structuredSources = structuredSourcesFor(retrievalQuery);
+      const searchedSources = searchSite(retrievalQuery, knowledge, 6).map((result) => ({
         title: result.document.title,
         url: result.document.url,
         passage: result.passage || result.document.summary,
       }));
-      if (/(近|最寄り|行きやす|アクセス|住所|所在地|店舗|どこ)/.test(retrievalQuery)) {
-        sources.unshift(storeAccessSource);
-      }
-      if (/(痩せ|痩身|引き締|太もも|下半身|脚痩せ|お尻|ヒップ|セルライト)/.test(retrievalQuery)) {
-        sources.unshift(slimmingCourseSource);
-      }
+      const sources = [...structuredSources, ...searchedSources].slice(0, 8);
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },

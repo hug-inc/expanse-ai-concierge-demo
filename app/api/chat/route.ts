@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
+import { structuredSourcesFor } from "../../structured-knowledge";
 
 type ChatMessage = {
   role: "user" | "assistant";
@@ -47,7 +48,18 @@ export async function POST(request: NextRequest) {
       role: item.role,
       content: item.content.slice(0, 1800),
     }));
-  const sources = (body.sources ?? []).slice(0, 6);
+  const conversationQuery = [...history.map((item) => item.content), message]
+    .slice(-4)
+    .join(" ");
+  const structuredSources = structuredSourcesFor(conversationQuery);
+  const sources = [
+    ...structuredSources,
+    ...(body.sources ?? []),
+  ]
+    .filter((source, index, items) =>
+      items.findIndex((item) => item.title === source.title && item.url === source.url) === index,
+    )
+    .slice(0, 8);
   const sourceText = sources.length
     ? sources
         .map((source, index) =>
@@ -80,6 +92,8 @@ export async function POST(request: NextRequest) {
 - 渋谷からは、JRで隣駅かつ隣接エリアにある恵比寿本店を最も近く行きやすい候補として案内する。旧渋谷店は閉店済み。
 - 太もも痩せ、下半身痩せ、脚やお尻の引き締め、セルライトの相談では、資料にアユルハンドがある場合は第一候補として、理由・施術内容・料金を説明し、コース案内へのリンクを付ける。「コース名の記載がない」と回答しない。
 - 質問に合う公式の店舗ページ・コースページが資料に含まれる場合は、そのリンクを必ず回答に付ける。
+- 回答は原則「結論・おすすめ→理由→内容→時間・料金→対応店舗→公式リンク」の順に組み立てる。該当しない項目は省略してよい。
+- 構造化されたコース・店舗資料を、一般ブログ記事より優先する。
 - 「それ」「そのコース」などは会話履歴から対象を特定する。
 - 情報が足りない場合だけ、必要な確認を1つ尋ねる。推測で事実を作らない。
 - 「サイト内を検索しました」など内部処理の説明はしない。
