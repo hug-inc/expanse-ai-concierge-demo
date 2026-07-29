@@ -15,8 +15,8 @@ type Message = {
 const topics = ["コース相談", "よくある質問", "ブログから探す", "店舗・予約"];
 
 const storeAccessSource = {
-  title: "Expanse 店舗一覧・アクセス",
-  url: "https://expanse.jp/#shoplist",
+  title: "恵比寿本店 店舗情報・アクセス",
+  url: "https://expanse.jp/ebisu02",
   passage:
     "恵比寿本店：東京都渋谷区恵比寿4-3-1 クイズ恵比寿3F-O。池袋本店：東京都豊島区南池袋1-17-2 南池袋I-Nビル8F。銀座SPA：東京都中央区銀座7-9-11 モンブラン銀座ビル8階。渋谷からは、隣接エリアでJRでも隣駅の恵比寿本店が通常もっとも近く、行きやすい候補。旧渋谷店は閉店している。",
 };
@@ -56,7 +56,7 @@ const answers: Record<string, Omit<Message, "id" | "role">> = {
   },
   "恵比寿本店": {
     text: "恵比寿本店では、全身アヴィヤンガやシローダーラー、ハマム浴などをご案内しています。目的に合わせたコース相談も可能です。",
-    link: { label: "恵比寿本店の予約ページへ", href: "https://expanse.jp/reserve/" },
+    link: { label: "恵比寿本店の店舗情報を見る", href: "https://expanse.jp/ebisu02" },
   },
   "池袋本店": {
     text: "池袋本店では、全身ケアやシローダーラー、ヘッドスパを組み合わせたコースなどをご案内しています。",
@@ -273,7 +273,7 @@ function replyFor(input: string, knowledge: KnowledgeDocument[]): Omit<Message, 
     return {
       text: "渋谷からなら、3店舗の中では恵比寿本店がもっとも近く、通常いちばん行きやすい候補です。渋谷駅から恵比寿駅はJRで隣駅です。\n\n恵比寿本店の住所は「東京都渋谷区恵比寿4-3-1 クイズ恵比寿3F-O」です。なお、以前の渋谷店は閉店しているため、現在ご案内できる最寄り候補は恵比寿本店になります。",
       actions: ["恵比寿本店", "予約について", "営業時間・電話番号"],
-      link: { label: "公式の店舗情報を見る", href: "https://expanse.jp/#shoplist" },
+      link: { label: "恵比寿本店の店舗情報を見る", href: "https://expanse.jp/ebisu02" },
     };
   }
   const priceAnswer = coursePriceAnswer(text);
