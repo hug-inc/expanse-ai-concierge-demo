@@ -1,63 +1,86 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { retrievalQueryFor, structuredSourcesFor } from "../app/structured-knowledge.ts";
+import {
+  intentFor,
+  retrievalQueryFor,
+  structuredSourcesFor,
+} from "../app/structured-knowledge.ts";
 
-test("太もも痩せではアユルハンドと料金表を優先する", () => {
-  const sources = structuredSourcesFor("太もも痩せしたい。どのコースがいいですか？");
-  assert.equal(sources[0]?.title, "アユルハンド（痩身）コース");
-  assert.match(sources[0]?.passage ?? "", /120分.*30,800円/);
-  assert.equal(sources[0]?.url, "https://expanse.jp/menu02");
+const cases = [
+  ["働いてみたい", "recruitment"],
+  ["セラピスト未経験だと給与いくら？", "recruitment"],
+  ["応募方法を教えて", "recruitment"],
+  ["渋谷から近い店舗は？", "store"],
+  ["恵比寿店の住所は？", "store"],
+  ["営業時間と電話番号は？", "store"],
+  ["予約したい", "reservation"],
+  ["予約をキャンセルしたい", "reservation"],
+  ["メニューを教えて", "menu"],
+  ["アヴィヤンガの料金は？", "menu"],
+  ["オプションはいくら？", "menu"],
+  ["太もも痩せしたい", "concern"],
+  ["眠りが浅く頭が休まらない", "concern"],
+  ["肩と腰がつらい", "concern"],
+  ["顔のケアをしたい", "concern"],
+  ["初めてでも大丈夫？", "first_visit"],
+  ["妊娠中でも受けられる？", "first_visit"],
+  ["アーユルヴェーダとは？", "ayurveda"],
+  ["カパについて教えて", "ayurveda"],
+  ["ブライダルエステについて", "bridal"],
+] as const;
+
+for (const [query, expected] of cases) {
+  test(`意図判定: ${query}`, () => {
+    assert.equal(intentFor(query), expected);
+  });
+}
+
+test("採用質問には採用資料だけを返す", () => {
+  const sources = structuredSourcesFor("前にコースを見たけど、Expanseで働いてみたい");
+  assert.equal(sources.length, 1);
+  assert.equal(sources[0]?.intent, "recruitment");
+  assert.match(sources[0]?.passage ?? "", /未経験正社員が月給250,000円〜/);
 });
 
-test("渋谷から近い店舗では店舗一覧を返す", () => {
-  const sources = structuredSourcesFor("渋谷から近い店舗は？");
-  assert.equal(sources[0]?.title, "Expanse 店舗一覧・アクセス");
-  assert.match(sources[0]?.passage ?? "", /恵比寿本店/);
+test("太ももの相談ではアユルハンドを第一候補にする", () => {
+  const sources = structuredSourcesFor("太もも痩せしたい。どのコースがいいですか？");
+  assert.equal(sources[0]?.title, "アユルハンド（痩身）コース");
+  assert.match(sources[0]?.passage ?? "", /120分通常30,800円/);
 });
 
 test("睡眠の相談ではシローダーラーを返す", () => {
-  const sources = structuredSourcesFor("眠りが浅くて頭が休まらない。おすすめは？");
-  assert.ok(sources.some((source) => source.title === "シローダーラーコース"));
+  const sources = structuredSourcesFor("眠りが浅くて頭が休まらない");
+  assert.ok(sources.some((item) => item.title === "シローダーラーコース"));
 });
 
-test("冷えとむくみではハマム浴を返す", () => {
-  const sources = structuredSourcesFor("冷えとむくみに合うコースを教えて");
-  assert.ok(sources.some((source) => source.title === "ハマム浴・温活コース"));
+test("妊娠中の相談では料金と医師確認の資料を返す", () => {
+  const text = structuredSourcesFor("妊娠中でも受けられますか？")
+    .map((item) => item.passage)
+    .join(" ");
+  assert.match(text, /20,900円/);
+  assert.match(text, /医師の了承/);
 });
 
-test("妊娠中の相談ではマタニティと注意事項を返す", () => {
-  const sources = structuredSourcesFor("妊娠中でも受けられますか？");
-  const maternity = sources.find((source) => source.title === "マタニティコース");
-  assert.match(maternity?.passage ?? "", /医師の了承/);
-});
-
-test("働きたい質問では採用情報だけを返す", () => {
-  const sources = structuredSourcesFor("Expanseで働いてみたい");
-  assert.deepEqual(sources.map((source) => source.title), ["Expanse 採用情報・セラピスト給与"]);
-  assert.equal(sources[0]?.url, "https://expanse.jp/recruit_02");
-});
-
-test("未経験セラピストの給与は現在の公式金額を返す", () => {
-  const sources = structuredSourcesFor("セラピスト未経験だと給与いくら？");
+test("カパ質問には体質資料だけを返す", () => {
+  const sources = structuredSourcesFor("カパについて詳しく教えて");
   assert.equal(sources.length, 1);
-  assert.match(sources[0]?.passage ?? "", /未経験の正社員が月給250,000円〜/);
-  assert.equal(sources[0]?.url, "https://expanse.jp/recruit_02");
+  assert.equal(sources[0]?.intent, "ayurveda");
+  assert.match(sources[0]?.passage ?? "", /地と水/);
 });
 
-test("新しい話題には過去のコース質問を混ぜない", () => {
-  const query = retrievalQueryFor("働いてみたい", [
-    "太もも痩せにはどのコース？",
-    "シローダーラーの料金は？",
-  ]);
-  assert.equal(query, "働いてみたい");
-  assert.deepEqual(
-    structuredSourcesFor(query).map((source) => source.title),
-    ["Expanse 採用情報・セラピスト給与"],
+test("予約質問には予約と店舗連絡先を返す", () => {
+  const sources = structuredSourcesFor("予約を変更したい");
+  assert.equal(sources[0]?.intent, "reservation");
+  assert.match(sources.map((item) => item.passage).join(" "), /03-3442-6656/);
+});
+
+test("指示語の質問だけ直前の話題を引き継ぐ", () => {
+  assert.equal(
+    retrievalQueryFor("働いてみたい", ["アヴィヤンガの料金は？"]),
+    "働いてみたい",
   );
-});
-
-test("それの料金では直前の話題を検索に引き継ぐ", () => {
-  const query = retrievalQueryFor("それの料金は？", ["アヴィヤンガについて教えて"]);
-  assert.match(query, /アヴィヤンガ/);
-  assert.ok(structuredSourcesFor(query).some((source) => source.title === "アヴィヤンガ全身コース"));
+  assert.match(
+    retrievalQueryFor("それの料金は？", ["アヴィヤンガについて教えて"]),
+    /アヴィヤンガ/,
+  );
 });

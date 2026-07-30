@@ -13,6 +13,7 @@ const corePages = [
   ["/ginza02", "銀座SPA"],
   ["/reserve/", "予約案内"],
   ["/recruit_02", "採用情報"],
+  ["/bridal", "ブライダルエステ"],
 ];
 
 function decode(value = "") {
@@ -45,6 +46,19 @@ function documentFromPost(post) {
   };
 }
 
+function documentFromPage(page) {
+  const content = decode(page.content?.rendered).slice(0, 16000);
+  return {
+    id: `page-wp-${page.id}`,
+    kind: "page",
+    title: decode(page.title?.rendered),
+    url: page.link,
+    summary: decode(page.excerpt?.rendered).slice(0, 500),
+    content,
+    date: page.modified?.slice(0, 10) ?? "",
+  };
+}
+
 const posts = [];
 for (let page = 1; page <= 7; page += 1) {
   const response = await fetch(`${site}/wp-json/wp/v2/posts?per_page=100&page=${page}`);
@@ -71,6 +85,17 @@ for (const [path, fallbackTitle] of corePages) {
     content: decode(main).slice(0, 16000),
     date: "",
   });
+}
+
+// WordPressで公開されている固定ページも取り込み、手動のURL一覧に
+// 含まれていないFAQ・スクール・ブライダル等を検索対象にする。
+const wpPagesResponse = await fetch(`${site}/wp-json/wp/v2/pages?per_page=100&page=1`);
+if (wpPagesResponse.ok) {
+  const knownUrls = new Set(pages.map((page) => page.url.replace(/\/$/, "")));
+  for (const page of await wpPagesResponse.json()) {
+    const document = documentFromPage(page);
+    if (!knownUrls.has(document.url.replace(/\/$/, ""))) pages.push(document);
+  }
 }
 
 const output = {

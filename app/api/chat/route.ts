@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { retrievalQueryFor, structuredSourcesFor } from "../../structured-knowledge";
+import { intentFor, retrievalQueryFor, structuredSourcesFor } from "../../structured-knowledge";
 
 type ChatMessage = {
   role: "user" | "assistant";
@@ -53,11 +53,21 @@ export async function POST(request: NextRequest) {
     history.filter((item) => item.role === "user").map((item) => item.content),
   );
   const structuredSources = structuredSourcesFor(retrievalQuery);
-  const recruitmentIntent =
-    /(働|仕事|就職|転職|採用|求人|募集|応募|エントリー|職種|給料|給与|セラピストにな|スタッフにな)/.test(message);
-  const submittedSources = recruitmentIntent
-    ? (body.sources ?? []).filter((source) => /採用|求人|募集|recruit/i.test(`${source.title} ${source.url}`))
-    : (body.sources ?? []);
+  const intent = intentFor(retrievalQuery);
+  const intentPatterns = {
+    recruitment: /採用|求人|募集|recruit/i,
+    store: /店舗|恵比寿|池袋|銀座|アクセス|shop|ebisu|ikebukuro|ginza/i,
+    reservation: /予約|店舗|reserve|恵比寿|池袋|銀座/i,
+    menu: /メニュー|料金|コース|施術|menu|service|option/i,
+    concern: /メニュー|コース|施術|アヴィヤンガ|アユルハンド|シロ|ハマム|menu|service/i,
+    first_visit: /初めて|妊娠|マタニティ|男性|ペア|first|menu/i,
+    ayurveda: /アーユルヴェーダ|ドーシャ|ヴァータ|ピッタ|カパ|体質/i,
+    bridal: /ブライダル|bridal|結婚|挙式/i,
+    general: /.*/,
+  };
+  const submittedSources = (body.sources ?? []).filter((source) =>
+    intentPatterns[intent].test(`${source.title} ${source.url} ${source.passage.slice(0, 300)}`),
+  );
   const sources = [
     ...structuredSources,
     ...submittedSources,
@@ -100,8 +110,10 @@ export async function POST(request: NextRequest) {
 - 質問に合う公式の店舗ページ・コースページが資料に含まれる場合は、そのリンクを必ず回答に付ける。
 - 回答は原則「結論・おすすめ→理由→内容→時間・料金→対応店舗→公式リンク」の順に組み立てる。該当しない項目は省略してよい。
 - 構造化されたコース・店舗資料を、一般ブログ記事より優先する。
+- 質問の分野と異なる資料は使わない。採用質問に施術、店舗質問にブログ、体質質問に採用などを混ぜない。
 - 働きたい、求人、採用、応募などの質問では採用情報だけを使い、施術コースやメニューのリンクを付けない。まず募集職種を示し、希望職種を確認する。
 - セラピストの給与を聞かれた場合は、資料にある未経験・経験者・雇用形態別の具体額を直接答える。「具体的な記載がない」と回答しない。
+- 質問が具体的なら、追加確認を先に求めず、分かる範囲の具体的な答えを完成させてから必要な補足だけを添える。
 - 「それ」「そのコース」などは会話履歴から対象を特定する。
 - 情報が足りない場合だけ、必要な確認を1つ尋ねる。推測で事実を作らない。
 - 「サイト内を検索しました」など内部処理の説明はしない。
