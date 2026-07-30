@@ -33,7 +33,14 @@ test("妊娠中の相談ではマタニティと注意事項を返す", () => {
 
 test("働きたい質問では採用情報だけを返す", () => {
   const sources = structuredSourcesFor("Expanseで働いてみたい");
-  assert.deepEqual(sources.map((source) => source.title), ["Expanse 採用情報・募集職種"]);
+  assert.deepEqual(sources.map((source) => source.title), ["Expanse 採用情報・セラピスト給与"]);
+  assert.equal(sources[0]?.url, "https://expanse.jp/recruit_02");
+});
+
+test("未経験セラピストの給与は現在の公式金額を返す", () => {
+  const sources = structuredSourcesFor("セラピスト未経験だと給与いくら？");
+  assert.equal(sources.length, 1);
+  assert.match(sources[0]?.passage ?? "", /未経験の正社員が月給250,000円〜/);
   assert.equal(sources[0]?.url, "https://expanse.jp/recruit_02");
 });
 
@@ -45,7 +52,7 @@ test("新しい話題には過去のコース質問を混ぜない", () => {
   assert.equal(query, "働いてみたい");
   assert.deepEqual(
     structuredSourcesFor(query).map((source) => source.title),
-    ["Expanse 採用情報・募集職種"],
+    ["Expanse 採用情報・セラピスト給与"],
   );
 });
 
